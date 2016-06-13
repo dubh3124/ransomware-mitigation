@@ -1,4 +1,4 @@
-SOFTWARE RESTRICTION GROUP POLICY IMPLEMENTATION
+#SOFTWARE RESTRICTION GROUP POLICY IMPLEMENTATION
 
 This group policy was created to prevent any executables from executing in the %AppData% or %LocalAppData%; this was to prevent CryptoWall and its variants from executing in these know execution folders. See This CryptoWall/Ransomware article for more information.
 Implementation
@@ -52,7 +52,7 @@ Security Level: Disallowed
 Description: Block executables run from archive attachments opened using Windows built-in Zip support.
 
 
-Allowing An Executable Through Software Restriction Policy 
+##Allowing An Executable Through Software Restriction Policy 
 
 If a program isn't executing or gives a "Program is blocked by Group Policy", you can easily find the cause by opening the Event Viewer for that computer and flitering out event ID 866; copy the path of the blocked executable after "/AppData/" or "/AppData/Local/ .  On a domain controller, Open Group Policy Management then right-click>edit the Software restriction group policy you created. Under Computer Configuration > Policies>Windows Settings>Security Settings>Software Restriction Policies>Additional Rules, right click in the whitespace and choose “New Path Rule..”.  In  the “Path” textbox type %LocalAppData%, paste the path that you copied previously, then change the security level to unrestricted; use the other SRP entries as a guide. Make sure you write a detailed note in the description on why the path rule was created, as well as document in the IT Change Logs.
 
