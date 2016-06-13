@@ -1,0 +1,92 @@
+SOFTWARE RESTRICTION GROUP POLICY IMPLEMENTATION
+
+This group policy was created to prevent any executables from executing in the %AppData% or %LocalAppData%; this was to prevent CryptoWall and its variants from executing in these know execution folders. See This CryptoWall/Ransomware article for more information.
+Implementation
+
+I created a Group Policy Object . In this GPO, I created policies under, Computer Configuration > Policies>Windows Settings>Software Restriction Policies>Additional Rules that restrict the most common areas where ransomware may try to execute; any rules that are “unrestricted” are executables that are whitelisted to run so a program can work properly such as Slack. The rules I created are: 
+
+Block CryptoWall executable in %AppData%
+Path: %AppData%\*.exe 
+Security Level: Disallowed
+Description: Don't allow executables to run from %AppData%.
+
+Block CryptoWall executable in %LocalAppData%
+Path if using Windows XP: %UserProfile%\Local Settings\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\*.exe
+Security Level: Disallowed
+Description: Don't allow executables to run from %AppData%.
+
+Block Zbot executable in %AppData%
+Path: %AppData%\*\*.exe 
+Security Level: Disallowed
+Description: Don't allow executables to run from immediate subfolders of %AppData%.
+
+Block Zbot executable in %LocalAppData%
+Path if using Windows XP: %UserProfile%\Local Settings\*\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\*\*.exe
+Security Level: Disallowed
+Description: Don't allow executables to run from immediate subfolders of %AppData%.
+
+Block executables run from archive attachments opened with WinRAR:
+Path if using Windows XP: %UserProfile%\Local Settings\Temp\Rar*\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\Temp\Rar*\*.exe
+Security Level: Disallowed
+Description: Block executables run from archive attachments opened with WinRAR.
+
+Block executables run from archive attachments opened with 7zip:
+Path if using Windows XP: %UserProfile%\Local Settings\Temp\7z*\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\Temp\7z*\*.exe
+Security Level: Disallowed
+Description: Block executables run from archive attachments opened with 7zip.
+
+Block executables run from archive attachments opened with WinZip:
+Path if using Windows XP: %UserProfile%\Local Settings\Temp\wz*\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\Temp\wz*\*.exe
+Security Level: Disallowed
+Description: Block executables run from archive attachments opened with WinZip.
+
+Block executables run from archive attachments opened using Windows built-in Zip support:
+Path if using Windows XP: %UserProfile%\Local Settings\Temp\*.zip\*.exe
+Path if using Windows Vista/7/8: %LocalAppData%\Temp\*.zip\*.exe
+Security Level: Disallowed
+Description: Block executables run from archive attachments opened using Windows built-in Zip support.
+
+
+Adding Computers to Software Restriction Policy
+
+To add computer to Software Restriction Policy (SRP), login to a domain controller and pull up the Group Policy Management screen. Click on “(HH) Software Restriction Policy” and under Security Filtering, click “Add…”.  First, click “Object Types..” and check “computers” to allow computer names to be selected as objects, then enter the computer name that needs to be added into the text box; once you click “Check Names” the computer name should be underlined to signified that the computer name has been recognized. Click Ok and make sure the computer name populates in the list.
+
+Once the computer has been added, the Group Policy should apply on next logon for any user or you can apply it yourself by opening a cmd prompt on that computer (you can do it through psexec) and use command gpupdate /force. (Ex. psexec \\gl10 gpupdate /force) 
+
+
+Logging/Notification of SRP violation
+
+GSG is set up as an Event Viewer Log Collector for all office computers so all SRP violations are logged in one location. Also, there is a task created under GSG’s Task Scheduler that will email ghgadmins@ghg.com alerting of the violation (the task has about a 2 minute delay so a user may alert you beforehand if the program they are trying to install is something they need). 
+
+
+
+
+1.	Location of SRP Log
+There a few ways of locating the SRP entries on GSG. I recommend importing the custom view XML document called “(HH)SoftwareRestrictionCustomViewForGSG” in U:\Documents\Microsoft Windows\Group Policies\ to the Event Viewer on GSG. This custom view filters the EventID 866 (SoftwareRestrictionPolicies) under Windows Logs >  Forwarded Events. The 2nd way to locate these logs is to locate the logs manually as I’ve outlined above by opening Event Viewer on GSG then going to Windows Logs > Forwarded Events and looking for Warnings regarding “SoftwareRestrictionPolicies” . The 3rd way is to open the Event Viewer on that specific computer causing the alert and go to Windows Logs > Application and look for Warnings regarding “SoftwareRestrictionPolicies” or Event ID 866.
+
+2.	Adding computer to  GSG to be logged
+If a new computer is added to the domain, it needs to be added to the “Software Restriction GPO on one of the domain controllers then GSG needs to be added to that computer’s “Event Logs Reader Group” and finally added to the “Software Restriction Log” subscription in the Event viewer of GSG. 
+
+a.	On one of the domain controllers:
+Start / Administrative Tools / Group Policy Management
+Under Group Policy Management / Forest: ghgcorp.com / Domains / ghgcorp.com
+Click on “Software Restriction Policy” and then Add at the bottom.
+Type in the name of the computer name, click on Object Types button and put a check on Computers, OK, and then Check Names and the name of the computer will be underlined to signify that it found the computer name. Click OK and it will add the computer to the Security Filtering list.
+
+b.	 Go to the local computer’s Computer  Management > Local User and Group > Groups > Event Log Readers then click add > Object Types and check Computer. Go back and enter GSG as the object name and click “Check Names” and select ok
+
+c.	Go to GSG and open the Event Viewer. Go to Subscriptions and right click  “Software Restriction Log”  and select “properties”. Click “Select Computers” then click “ Add Domain Computers”. Type the computer name of the computer you are adding.
+
+d.	To verify the computer is connected and GSG can retrieve logs from it. On GSG, go to Event Viewer > Subscriptions right click on “Software Restriction Log” then click “Retry”, this will allow GSG to reconnect to all computers. Then right click again on the same subscription and choose “Runtime Status”. Find the computer and it should have a green check mark by it. 
+
+
+
+Allowing An Executable Through Software Restriction Policy 
+
+First, on the Event Viewer on GSG, under Forwarded Events,  copy the path of the executable from the end up to before /AppData/Local/ (don’t include /Appdata/Local).  On a domain controller, Open Group Policy Management then right-click>edit (HH) Software Restriction Policy. Under Computer Configuration > Policies>Windows Settings>Security Settings>Software Restriction Policies>Additional Rules, right click in the whitespace and choose “New Path Rule..”.  In  the “Path” textbox type %LocalAppData%, paste the path that you copied previously, then change the security level to unrestricted; use the other SRP entries as a guide. Make sure you write a detailed note in the description on why the path rule was created, as well as document in the IT Change Logs.
+
